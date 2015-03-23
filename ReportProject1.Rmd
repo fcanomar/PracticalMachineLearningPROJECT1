@@ -1,0 +1,99 @@
+---
+title: "Project 1 - Practical Machine Learning - Coursera"
+author: "Francisco Cano Marchal"
+date: "22 de marzo de 2015"
+output: html_document
+---
+```{r}
+library(caret)
+```
+
+
+Get the data   
+
+```{r}
+url <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+download.file(url, destfile="/Users/franciscocanomarchal/Data-Science/Practical-Machine-Learning/Project-One/training.csv", method="curl")
+exercise <- read.csv("~/Data-Science/Practical-Machine-Learning/Project-One/training.csv")
+```
+
+Divide into training and test set for cross validation   
+
+```{r}
+trainPart <- createDataPartition(exercise$classe,p=0.75,list=FALSE)
+training <- exercise[trainPart,]
+test <- exercise[-trainPart,]
+```
+
+Select variables   
+
+```{r}
+train <- subset(training,select=-c(X,user_name,raw_timestamp_part_1,raw_timestamp_part_2,cvtd_timestamp, new_window, num_window))    
+```
+
+I am going to keep only the variables actually measured   
+
+```{r}
+trainm <- train[,grepl(names(train),pattern="^roll_|^pitch_|^yaw_|^gyros_|^accel_|^magnet_|^classe")]
+```
+
+```{r}
+M <- abs(cor(subset(trainm,select=-c(classe))))
+diag(M) <- 0
+which(M>0.8,arr.ind=T)
+```
+
+Some of them are quite correlated, it is to be expected for ex. due to contraints in the body movement   
+
+I'll limit my descriptors using PCA   
+
+```{r}
+traindes <- subset(trainm,select=-c(classe))
+        
+prComp <- preProcess(traindes,method="pca")
+trainPC  <- predict(prComp,traindes)
+```
+
+Only 23 components needed to capture 95 percent of the variance   
+
+
+I'm training my model using RANDOM FORESTS with the previously selected variables   
+
+```{r}
+set.seed(647)
+library(randomForest)
+modelFitPCA <- randomForest(trainm$classe~.,data=trainPC)
+```
+
+```{r}
+modelFitPCA
+```
+
+The model looks good, but still we have to use cross validation to get a more real estimation of the accuracy of model.    
+
+Let's test the model with my testing set   
+
+```{r}
+test <- subset(test,select=-c(X,user_name,raw_timestamp_part_1,raw_timestamp_part_2,cvtd_timestamp, new_window, num_window))    
+testm <- test[,grepl(names(test),pattern="^roll_|^pitch_|^yaw_|^gyros_|^accel_|^magnet_|^classe")]
+testdes <- subset(testm,select=-c(classe))
+testPCA <- predict(prComp, testdes)
+
+pred  <- predict(modelFitPCA,testPCA)
+table(pred,testm$classe)
+confusionMatrix(testm$classe,pred)
+```
+
+Not bad.   
+
+
+
+
+
+
+
+
+
+
+
+
