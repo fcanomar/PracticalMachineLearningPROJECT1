@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="description" content="Practicalmachinelearningproject1 : ">
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Practicalmachinelearningproject1</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/fcanomar/PracticalMachineLearningPROJECT1">View on GitHub</a>
+
+          <h1 id="project_title">Practicalmachinelearningproject1</h1>
+          <h2 id="project_tagline"></h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/fcanomar/PracticalMachineLearningPROJECT1/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/fcanomar/PracticalMachineLearningPROJECT1/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <p>&lt;!DOCTYPE html&gt;</p>
+
+<p></p>
+
+<p></p>
+
+<p>
+
+</p>
+
+<p></p>
+
+<p></p>Project 1 - Practical Machine Learning - Coursera
+
+
+
+<p>
+
+</p>
+
+
+
+code{white-space: pre;}
+
+<p></p>
+
+
+
+
+  pre:not([class]) {
+    background-color: white;
+  }
+
+
+
+
+<p></p>
+
+<p></p>
+
+
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+
+<div>
+
+
+<div id="header">
+<h1>
+<a id="project-1---practical-machine-learning---coursera" class="anchor" href="#project-1---practical-machine-learning---coursera" aria-hidden="true"><span class="octicon octicon-link"></span></a>Project 1 - Practical Machine Learning - Coursera</h1>
+<h4>
+<a id="francisco-cano-marchal" class="anchor" href="#francisco-cano-marchal" aria-hidden="true"><span class="octicon octicon-link"></span></a><em>Francisco Cano Marchal</em>
+</h4>
+<h4>
+<a id="22-de-marzo-de-2015" class="anchor" href="#22-de-marzo-de-2015" aria-hidden="true"><span class="octicon octicon-link"></span></a><em>22 de marzo de 2015</em>
+</h4>
+</div>
+
+<pre><code>library(caret)</code></pre>
+
+<pre><code>## Loading required package: lattice
+## Loading required package: ggplot2</code></pre>
+
+<p>Get the data</p>
+
+<pre><code>url &lt;- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+download.file(url, destfile="/Users/franciscocanomarchal/Data-Science/Practical-Machine-Learning/Project-One/training.csv", method="curl")
+exercise &lt;- read.csv("~/Data-Science/Practical-Machine-Learning/Project-One/training.csv")</code></pre>
+
+<p>Divide into training and test set for cross validation</p>
+
+<pre><code>trainPart &lt;- createDataPartition(exercise$classe,p=0.75,list=FALSE)
+training &lt;- exercise[trainPart,]
+test &lt;- exercise[-trainPart,]</code></pre>
+
+<p>Select variables</p>
+
+<pre><code>train &lt;- subset(training,select=-c(X,user_name,raw_timestamp_part_1,raw_timestamp_part_2,cvtd_timestamp, new_window, num_window))    </code></pre>
+
+<p>I am going to keep only the variables actually measured</p>
+
+<pre><code>trainm &lt;- train[,grepl(names(train),pattern="^roll_|^pitch_|^yaw_|^gyros_|^accel_|^magnet_|^classe")]</code></pre>
+
+<pre><code>M &lt;- abs(cor(subset(trainm,select=-c(classe))))
+diag(M) &lt;- 0
+which(M&gt;0.8,arr.ind=T)</code></pre>
+
+<pre><code>##                  row col
+## yaw_belt           3   1
+## accel_belt_y       8   1
+## accel_belt_z       9   1
+## accel_belt_x       7   2
+## magnet_belt_x     10   2
+## roll_belt          1   3
+## pitch_belt         2   7
+## magnet_belt_x     10   7
+## roll_belt          1   8
+## accel_belt_z       9   8
+## roll_belt          1   9
+## accel_belt_y       8   9
+## pitch_belt         2  10
+## accel_belt_x       7  10
+## gyros_arm_y       17  16
+## gyros_arm_x       16  17
+## magnet_arm_x      22  19
+## accel_arm_x       19  22
+## magnet_arm_z      24  23
+## magnet_arm_y      23  24
+## accel_dumbbell_x  31  26
+## accel_dumbbell_z  33  27
+## gyros_dumbbell_z  30  28
+## gyros_forearm_z   42  28
+## gyros_dumbbell_x  28  30
+## gyros_forearm_z   42  30
+## pitch_dumbbell    26  31
+## yaw_dumbbell      27  33
+## gyros_forearm_z   42  41
+## gyros_dumbbell_x  28  42
+## gyros_dumbbell_z  30  42
+## gyros_forearm_y   41  42</code></pre>
+
+<p>Some of them are quite correlated, it is to be expected for ex. due to contraints in the body movement</p>
+
+<p>I’ll limit my descriptors using PCA</p>
+
+<pre><code>traindes &lt;- subset(trainm,select=-c(classe))
+        
+prComp &lt;- preProcess(traindes,method="pca")
+trainPC  &lt;- predict(prComp,traindes)</code></pre>
+
+<p>Only 23 components needed to capture 95 percent of the variance</p>
+
+<p>I’m training my model using RANDOM FORESTS with the previously selected variables</p>
+
+<pre><code>set.seed(647)
+library(randomForest)</code></pre>
+
+<pre><code>## randomForest 4.6-10
+## Type rfNews() to see new features/changes/bug fixes.</code></pre>
+
+<pre><code>modelFitPCA &lt;- randomForest(trainm$classe~.,data=trainPC)</code></pre>
+
+<pre><code>modelFitPCA</code></pre>
+
+<pre><code>## 
+## Call:
+##  randomForest(formula = trainm$classe ~ ., data = trainPC) 
+##                Type of random forest: classification
+##                      Number of trees: 500
+## No. of variables tried at each split: 4
+## 
+##         OOB estimate of  error rate: 1.93%
+## Confusion matrix:
+##      A    B    C    D    E class.error
+## A 4159   11   10    3    2 0.006212664
+## B   43 2772   28    1    4 0.026685393
+## C    3   26 2516   19    3 0.019867550
+## D    3    5   88 2314    2 0.040630182
+## E    1    8   13   11 2673 0.012195122</code></pre>
+
+<p>The model looks good, but still we have to use cross validation to get a more real estimation of the accuracy of model.</p>
+
+<p>Let’s test the model with my testing set</p>
+
+<pre><code>test &lt;- subset(test,select=-c(X,user_name,raw_timestamp_part_1,raw_timestamp_part_2,cvtd_timestamp, new_window, num_window))    
+testm &lt;- test[,grepl(names(test),pattern="^roll_|^pitch_|^yaw_|^gyros_|^accel_|^magnet_|^classe")]
+testdes &lt;- subset(testm,select=-c(classe))
+testPCA &lt;- predict(prComp, testdes)
+
+pred  &lt;- predict(modelFitPCA,testPCA)
+table(pred,testm$classe)</code></pre>
+
+<pre><code>##     
+## pred    A    B    C    D    E
+##    A 1387   13    2    1    0
+##    B    3  926   11    1    3
+##    C    2    7  835   33    2
+##    D    1    3    6  767    3
+##    E    2    0    1    2  893</code></pre>
+
+<pre><code>confusionMatrix(testm$classe,pred)</code></pre>
+
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 1387    3    2    1    2
+##          B   13  926    7    3    0
+##          C    2   11  835    6    1
+##          D    1    1   33  767    2
+##          E    0    3    2    3  893
+## 
+## Overall Statistics
+##                                           
+##                Accuracy : 0.9804          
+##                  95% CI : (0.9761, 0.9841)
+##     No Information Rate : 0.2861          
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
+##                                           
+##                   Kappa : 0.9752          
+##  Mcnemar's Test P-Value : 0.0003481       
+## 
+## Statistics by Class:
+## 
+##                      Class: A Class: B Class: C Class: D Class: E
+## Sensitivity            0.9886   0.9809   0.9499   0.9833   0.9944
+## Specificity            0.9977   0.9942   0.9950   0.9910   0.9980
+## Pos Pred Value         0.9943   0.9758   0.9766   0.9540   0.9911
+## Neg Pred Value         0.9954   0.9954   0.9891   0.9968   0.9988
+## Prevalence             0.2861   0.1925   0.1792   0.1591   0.1831
+## Detection Rate         0.2828   0.1888   0.1703   0.1564   0.1821
+## Detection Prevalence   0.2845   0.1935   0.1743   0.1639   0.1837
+## Balanced Accuracy      0.9932   0.9876   0.9725   0.9872   0.9962</code></pre>
+
+<p>Not bad.</p>
+
+<p></p>
+</div>
+
+
+
+
+
+
+
+<p>
+</p>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Practicalmachinelearningproject1 maintained by <a href="https://github.com/fcanomar">fcanomar</a></p>
+        <p>Published with <a href="https://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
